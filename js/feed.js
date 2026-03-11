@@ -4,11 +4,13 @@ import * as crypto from './crypto.js';
 
 const DEFAULT_BASE = 'satellite';
 
-// Resolve the base URL for a user. Tries /satellite/satproto.json by default.
+// Fetch profile, trying /satellite/satproto.json first, then /satproto.json.
 export async function fetchProfile(domain) {
-  const resp = await fetch(`https://${domain}/${DEFAULT_BASE}/satproto.json`);
-  if (!resp.ok) throw new Error(`Profile not found for ${domain}`);
-  return resp.json();
+  const primary = await fetch(`https://${domain}/${DEFAULT_BASE}/satproto.json`);
+  if (primary.ok) return primary.json();
+  const fallback = await fetch(`https://${domain}/satproto.json`);
+  if (fallback.ok) return fallback.json();
+  throw new Error(`Profile not found for ${domain}`);
 }
 
 // Get the sat_root URL prefix for a user (e.g. "https://alice.com/satellite/sat")
