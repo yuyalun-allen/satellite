@@ -110,14 +110,15 @@ function selfDataEntry(repo, token, contentKey) {
   );
 }
 
-async function bootstrap() {
+async function bootstrap({ replace = false } = {}) {
   const { token, repo, domain } = getState();
   const pk = localStorage.getItem('satproto_public_key');
 
   const contentKey = crypto.generateContentKey();
   localStorage.setItem('satproto_content_key', crypto.toBase64(contentKey));
 
-  await github.pushFiles(token, repo, [
+  const push = replace ? github.replaceAllFiles : github.pushFiles;
+  await push(token, repo, [
     github.textEntry('profile.json', JSON.stringify({
       satproto_version: '0.1.0',
       public_key: pk,
@@ -343,13 +344,14 @@ window.exportKeys = function () {
 window.reinitialize = async function () {
   if (
     !confirm(
-      'Re-initialize your site? This will reset your profile and post index.'
+      'Re-initialize your site? This will permanently delete all posts, follows, and reset your profile.'
     )
   )
     return;
   setStatus('Re-initializing...');
   try {
-    await bootstrap();
+    localStorage.removeItem(PENDING_KEY);
+    await bootstrap({ replace: true });
     setStatus('Site re-initialized!');
     await refreshFeed();
   } catch (e) {
